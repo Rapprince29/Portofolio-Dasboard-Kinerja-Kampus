@@ -22,6 +22,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // 🚀 Vercel Fix: Redirect storage to /tmp
+        if (isset($_SERVER['VERCEL_URL'])) {
+            $this->app->useStoragePath('/tmp');
+            config(['view.compiled' => '/tmp/views']);
+            
+            // Buat folder view jika belum ada
+            if (!is_dir('/tmp/views')) {
+                mkdir('/tmp/views', 0755, true);
+            }
+        }
+
         Vite::prefetch(concurrency: 3);
 
         Gate::define('is-superadmin', function (User $user) {
