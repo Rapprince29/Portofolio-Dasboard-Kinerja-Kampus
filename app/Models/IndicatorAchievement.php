@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class IndicatorAchievement extends Model
 {
     protected $fillable = [
-        'indicator_id', 'user_id', 'year', 'value', 'status', 'verified_by',
+        'indicator_id', 'user_id', 'year', 'value', 'numerator_value', 'denominator_value', 'status', 'verified_by',
         'description', 'proof_path', 'rejection_reason',
         'is_read', 'is_read_wadir', 'is_read_direktur', 'status_changed_at',
     ];

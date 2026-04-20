@@ -3,10 +3,11 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import Modal from '@/Components/Modal';
 
-export default function Index({ auth, achievements, myIndicators }) {
+export default function Index({ auth, achievements, myIndicators, currentYear, availableYears }) {
     const { flash } = usePage().props;
     const [filterStatus, setFilterStatus] = useState('all');
     const [toast, setToast] = useState(null);
+    const [yearInput, setYearInput] = useState(String(currentYear || new Date().getFullYear()));
 
     // Modal pengajuan capaian baru
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,9 +24,23 @@ export default function Index({ auth, achievements, myIndicators }) {
         indicator_id: '',
         year: new Date().getFullYear().toString(),
         value: '',
+        numerator_value: '',
+        denominator_value: '',
         description: '',
         proof: null,
     });
+
+    // Auto-calculate percentage when numerator or denominator changes
+    useEffect(() => {
+        if (selectedIndicator?.data_type === 'percent' || (selectedIndicator?.code && selectedIndicator.code.toLowerCase().includes('rasio'))) {
+            const num = parseFloat(data.numerator_value);
+            const den = parseFloat(data.denominator_value);
+            if (!isNaN(num) && !isNaN(den) && den > 0) {
+                const calculated = (num / den) * 100;
+                setData('value', calculated.toFixed(2));
+            }
+        }
+    }, [data.numerator_value, data.denominator_value]);
 
     // Handler: pilih indikator → update form + tampilkan info card
     const handleIndicatorChange = (e) => {
@@ -139,6 +154,47 @@ export default function Index({ auth, achievements, myIndicators }) {
             </div>
 
             <div className="max-w-7xl mx-auto p-4 -mt-8">
+                {/* Year Filter Header */}
+                <div className="flex justify-end mb-4">
+                    <div className="bg-white shadow-sm border border-gray-100 rounded-2xl px-4 py-3 flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">📅 Tahun Data:</span>
+                            <input
+                                type="number"
+                                list="available-years-achievements"
+                                value={yearInput}
+                                onChange={(e) => setYearInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key !== 'Enter') return;
+                                    const val = parseInt(yearInput);
+                                    if (!isNaN(val)) router.get(route('achievements.index'), { year: val }, { preserveState: true });
+                                }}
+                                placeholder="Ketik tahun..."
+                                className="w-24 border border-gray-200 bg-gray-50 text-gray-700 text-sm rounded-xl p-1.5 px-3 outline-none focus:ring-2 focus:ring-pens-500 font-mono"
+                            />
+                            <datalist id="available-years-achievements">
+                                {(availableYears || []).map(y => (
+                                    <option key={y} value={y} />
+                                ))}
+                            </datalist>
+                            <button
+                                onClick={() => {
+                                    const val = parseInt(yearInput);
+                                    if (!isNaN(val)) router.get(route('achievements.index'), { year: val }, { preserveState: true });
+                                }}
+                                className="bg-pens-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-pens-700 transition whitespace-nowrap shadow-sm"
+                            >Tampilkan →</button>
+                        </div>
+                        {(availableYears || []).length > 0 ? (
+                            <p className="text-[10px] text-gray-400 text-right">
+                                📂 Tahun tersedia: <span className="font-bold text-gray-600">{availableYears.join(', ')}</span>
+                            </p>
+                        ) : (
+                            <p className="text-[10px] text-gray-400">Belum ada data yang tersimpan.</p>
+                        )}
+                    </div>
+                </div>
+
                 {/* Stats Summary */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
@@ -419,8 +475,8 @@ export default function Index({ auth, achievements, myIndicators }) {
                             </div>
                         )}
 
-                        {/* Tahun & Nilai */}
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Tahun & Nilai (SMART FORM LOGIC) */}
+                        <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tahun <span className="text-red-500">*</span></label>
                                 <input type="number" value={data.year} onChange={e => setData('year', e.target.value)}
@@ -428,15 +484,46 @@ export default function Index({ auth, achievements, myIndicators }) {
                                     placeholder="2026" required />
                                 {errors.year && <p className="text-red-500 text-xs mt-1">{errors.year}</p>}
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                    Nilai Realisasi {selectedIndicator?.data_type === 'percent' ? '(%)' : ''} <span className="text-red-500">*</span>
-                                </label>
-                                <input type="number" step="0.01" value={data.value} onChange={e => setData('value', e.target.value)}
-                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pens-500"
-                                    placeholder="Contoh: 85.5" required />
-                                {errors.value && <p className="text-red-500 text-xs mt-1">{errors.value}</p>}
-                            </div>
+
+                            {(selectedIndicator?.data_type === 'percent' || (selectedIndicator?.code && selectedIndicator.code.toLowerCase().includes('rasio'))) ? (
+                                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                    <div className="col-span-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span> Mode Kalkulasi Otomatis
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">
+                                            {selectedIndicator.numerator_label || 'Pembilang (Capaian)'} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input type="number" step="0.01" value={data.numerator_value} onChange={e => setData('numerator_value', e.target.value)}
+                                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                            placeholder="0" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">
+                                            {selectedIndicator.denominator_label || 'Penyebut (Total)'} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input type="number" step="0.01" value={data.denominator_value} onChange={e => setData('denominator_value', e.target.value)}
+                                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                            placeholder="0" required />
+                                    </div>
+                                    <div className="col-span-2 pt-2 border-t border-gray-100 mt-1">
+                                        <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                                            <span className="text-xs font-bold text-gray-500">HASIL PERSENTASE:</span>
+                                            <span className="text-lg font-black text-blue-600">{data.value || 0}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                        Nilai Realisasi <span className="text-red-500">*</span>
+                                    </label>
+                                    <input type="number" step="0.01" value={data.value} onChange={e => setData('value', e.target.value)}
+                                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pens-500"
+                                        placeholder="Tulis angka hasil realisasi..." required />
+                                    {errors.value && <p className="text-red-500 text-xs mt-1">{errors.value}</p>}
+                                </div>
+                            )}
                         </div>
 
                         {/* Catatan */}

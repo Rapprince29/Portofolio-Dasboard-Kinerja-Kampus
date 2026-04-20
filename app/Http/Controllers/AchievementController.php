@@ -5,25 +5,24 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\IndicatorAchievement;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class AchievementController extends Controller
 {
-    /**
-     * Display a listing of the achievements.
-     */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
+        $year = $request->query('year', now()->year);
+        $role = strtolower($user->role);
 
-        if (in_array(strtolower($user->role), ['wadir', 'direktur', 'superadmin'])) {
-            $achievements = IndicatorAchievement::with(['indicator', 'user'])
-                ->orderBy('year', 'desc')
-                ->get();
+        $query = IndicatorAchievement::with(['indicator', 'user'])
+            ->where('year', $year)
+            ->orderBy('created_at', 'desc');
+
+        if (in_array($role, ['wadir', 'direktur', 'superadmin'])) {
+            $achievements = $query->get();
         } else {
-            $achievements = IndicatorAchievement::where('user_id', $user->id)
-                ->with('indicator')
-                ->orderBy('year', 'desc')
-                ->get();
+            $achievements = $query->where('user_id', $user->id)->get();
         }
 
         // Ambil Indikator milik unit kerja ini + target tahun ini, untuk Form & Info Card
@@ -33,9 +32,17 @@ class AchievementController extends Controller
             $q->orderBy('year', 'desc');
         }])->get();
 
+        // Tahun yang benar-benar ada datanya (untuk panduan di filter)
+        $availableYears = IndicatorAchievement::selectRaw('DISTINCT year')
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->toArray();
+
         return \Inertia\Inertia::render('Achievements/Index', [
-            'achievements' => $achievements,
-            'myIndicators' => $myIndicators,
+            'achievements'   => $achievements,
+            'myIndicators'   => $myIndicators,
+            'currentYear'    => (int)$year,
+            'availableYears' => $availableYears,
         ]);
     }
 
@@ -44,10 +51,17 @@ class AchievementController extends Controller
         $validated = $request->validate([
             'indicator_id' => 'required|exists:indicators,id',
             'year' => 'required|integer',
-            'value' => 'required|numeric',
+            'value' => 'nullable|numeric',
+            'numerator_value' => 'nullable|numeric',
+            'denominator_value' => 'nullable|numeric',
             'description' => 'nullable|string',
             'proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
+
+        // Smart Logic: Hitung otomatis persentase jika ada numerator & denominator
+        if ($request->filled('numerator_value') && $request->filled('denominator_value') && $request->denominator_value > 0) {
+            $validated['value'] = ($request->numerator_value / $request->denominator_value) * 100;
+        }
 
         if ($request->hasFile('proof')) {
             $path = $request->file('proof')->store('proofs', 'public');
@@ -162,7 +176,7 @@ class AchievementController extends Controller
         $role = trim(strtolower($user->role));
         $updatedRows = 0;
 
-        \Log::info("Marking read for user: " . $user->name . " (Role: " . $role . ")");
+        Log::info("Marking read for user: " . $user->name . " (Role: " . $role . ")");
 
         if ($role === 'unit_kerja') {
             $updatedRows = IndicatorAchievement::where('user_id', $user->id)
@@ -178,7 +192,7 @@ class AchievementController extends Controller
                 ->update(['is_read_direktur' => true]);
         }
 
-        \Log::info("Rows successfully updated in DB: " . $updatedRows);
+        Log::info("Rows successfully updated in DB: " . $updatedRows);
 
         // Langsung redirect saja, Inertia akan otomatis refresh props 'notifications'
         return redirect()->back();

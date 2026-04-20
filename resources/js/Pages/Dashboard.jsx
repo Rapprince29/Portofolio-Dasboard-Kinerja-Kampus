@@ -18,6 +18,9 @@ import { Bar, Doughnut, Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler);
 
+import UnitActivityMonitor from '@/Components/UnitActivityMonitor';
+import { router } from '@inertiajs/react';
+
 // ── Helper ─────────────────────────────────────────────────────────────────────
 function getKpiColor(pct) {
     if (pct >= 80) return 'green';
@@ -140,8 +143,22 @@ function KpiCard({ indicator, index }) {
 }
 
 // ── Main Dashboard ─────────────────────────────────────────────────────────────
-export default function Dashboard({ currentYear, indicators, overallAvg, stats, yearlyTrends }) {
+export default function Dashboard({ currentYear, indicators, overallAvg, stats, yearlyTrends, unitActivity, availableYears }) {
     const { auth } = usePage().props;
+    const [yearInput, setYearInput] = useState(String(currentYear));
+
+    const handleYearChange = (e) => {
+        setYearInput(e.target.value);
+    };
+
+    const applyYearFilter = (e) => {
+        // Terapkan filter saat Enter atau saat input kehilangan fokus
+        if ((e.type === 'keydown' && e.key !== 'Enter') ) return;
+        const val = parseInt(yearInput);
+        if (!isNaN(val) && val > 1900 && val < 2100) {
+            router.get(route('dashboard'), { year: val }, { preserveState: true });
+        }
+    };
 
     // Line Chart
     const lineChartData = {
@@ -232,22 +249,53 @@ export default function Dashboard({ currentYear, indicators, overallAvg, stats, 
                                 Realtime Dashboard Pengukuran Kinerja Unit Kerja — Politeknik Elektronika Negeri Surabaya. Evaluasi data kinerja periode tahun {currentYear}.
                             </p>
                         </div>
-                        {['wadir', 'direktur', 'superadmin'].includes(auth.user.role?.toLowerCase()) && (
-                            <div className="mt-4 sm:mt-0 bg-white/10 px-4 py-2 rounded-xl border border-white/20 backdrop-blur-sm">
-                                <span className="text-xs uppercase tracking-wider text-pens-200 block mb-0.5">Mode Tampilan</span>
-                                <div className="font-bold flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Agregat Institusi
+                        
+                        <div className="mt-4 sm:mt-0 flex flex-col sm:items-end gap-3">
+                            <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/20 backdrop-blur-sm flex flex-col gap-1.5">
+                                <span className="text-xs uppercase tracking-wider text-pens-200 font-bold">Tahun Evaluasi:</span>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        list="available-years-dashboard"
+                                        value={yearInput}
+                                        onChange={handleYearChange}
+                                        onKeyDown={applyYearFilter}
+                                        onBlur={applyYearFilter}
+                                        placeholder="Ketik tahun..."
+                                        className="w-24 bg-pens-700/50 border border-white/30 text-white text-sm rounded-lg p-1.5 px-2 outline-none focus:ring-2 focus:ring-gold-400 font-mono"
+                                    />
+                                    <datalist id="available-years-dashboard">
+                                        {(availableYears || []).map(y => (
+                                            <option key={y} value={y} />
+                                        ))}
+                                    </datalist>
+                                    <button
+                                        onClick={() => {
+                                            const val = parseInt(yearInput);
+                                            if (!isNaN(val)) router.get(route('dashboard'), { year: val }, { preserveState: true });
+                                        }}
+                                        className="bg-gold-400 text-pens-900 text-xs font-black px-2.5 py-1.5 rounded-lg hover:bg-yellow-300 transition whitespace-nowrap"
+                                    >Tampilkan →</button>
                                 </div>
+                                {availableYears?.length > 0 && (
+                                    <p className="text-[10px] text-pens-300">
+                                        Ada data: {availableYears.join(', ')}
+                                    </p>
+                                )}
                             </div>
-                        )}
-                        {['unit_kerja'].includes(auth.user.role?.toLowerCase()) && (
-                            <div className="mt-4 sm:mt-0 bg-white/10 px-4 py-2 rounded-xl border border-white/20 backdrop-blur-sm">
-                                <span className="text-xs uppercase tracking-wider text-pens-200 block mb-0.5">Mode Tampilan</span>
-                                <div className="font-bold flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-blue-400"></span> Capaian Pribadi
+
+                            {['wadir', 'direktur', 'superadmin'].includes(auth.user.role?.toLowerCase()) ? (
+                                <div className="bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-400/30 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                    <span className="text-xs font-bold text-emerald-50 font-mono tracking-tight uppercase">MODE: Agregat Institusi (Full Access)</span>
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <div className="bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-400/30 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                                    <span className="text-xs font-bold text-blue-50 font-mono tracking-tight uppercase">MODE: Capaian Unit Pribadi</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -303,15 +351,13 @@ export default function Dashboard({ currentYear, indicators, overallAvg, stats, 
 
                     {/* Doughnut Chart - Status */}
                     <div className="stat-card bg-white p-6 rounded-2xl shadow-md border border-gray-100 relative overflow-hidden">
-                        {/* decorative background circle */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full -mr-10 -mt-10 max-w-full"></div>
-                        
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full -mr-10 -mt-10 max-w-full italic" />
                         <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 relative z-10">
                             <span className="w-1.5 h-5 bg-gold-400 rounded-full" />
-                            Distribusi Kelulusan Target
+                            Status Kecukupan Target IKU
                         </h3>
                         <div className="flex items-center justify-center py-2 relative z-10">
-                            <div className="relative" style={{ width: 170, height: 170 }}>
+                            <div className="relative" style={{ width: 160, height: 160 }}>
                                 <Doughnut
                                     data={statusDoughnut}
                                     options={{
@@ -321,58 +367,85 @@ export default function Dashboard({ currentYear, indicators, overallAvg, stats, 
                                     }}
                                 />
                                 <div className="absolute inset-0 flex flex-col items-center justify-center drop-shadow-sm">
-                                    <span className="text-3xl font-black text-gray-800"><AnimatedNumber value={overallAvg} />%</span>
-                                    <span className="text-xs font-semibold text-gray-400 tracking-wider">SKOR GLOBAL</span>
+                                    <span className="text-2xl font-black text-gray-800 tracking-tighter"><AnimatedNumber value={overallAvg} />%</span>
+                                    <span className="text-[10px] font-black text-pens-500 tracking-widest uppercase">Skor Global</span>
                                 </div>
                             </div>
                         </div>
                         <div className="mt-5 space-y-2.5 relative z-10">
                             {[
-                                { label: 'Tercapai', value: stats.achieved, color: 'bg-emerald-400' },
-                                { label: 'Dalam Proses', value: stats.onTrack, color: 'bg-amber-400' },
+                                { label: 'Target Terlampaui', value: stats.achieved, color: 'bg-emerald-400' },
+                                { label: 'Sedang Berjalan', value: stats.onTrack, color: 'bg-amber-400' },
                                 { label: 'Di Bawah Target', value: stats.belowTarget, color: 'bg-red-400' },
                             ].map((s, i) => (
-                                <div key={i} className="flex items-center justify-between text-sm bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl transition duration-300 hover:bg-gray-100">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className={`w-3 h-3 rounded-full ${s.color} shadow-sm`} />
-                                        <span className="text-gray-600 font-medium">{s.label}</span>
+                                <div key={i} className="flex items-center justify-between text-xs bg-gray-50/70 border border-gray-100 px-3 py-1.5 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${s.color}`} />
+                                        <span className="text-gray-500 font-bold">{s.label}</span>
                                     </div>
-                                    <span className="font-bold text-gray-800">{s.value}</span>
+                                    <span className="font-black text-gray-800">{s.value} <span className="text-[10px] text-gray-400 italic">IKU</span></span>
                                 </div>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                {/* ── Bar Chart - Comparison ── */}
-                <div className="stat-card bg-white p-6 rounded-2xl shadow-md border border-gray-100 mb-8 overflow-hidden">
-                    <h3 className="text-sm font-bold text-gray-800 mb-5 flex items-center gap-2">
-                        <span className="w-1.5 h-5 bg-pens-500 rounded-full" />
-                        Grafik Evaluasi Spesifik Per-Indikator Kinerja Utama ({currentYear})
-                    </h3>
-                    <div className="overflow-x-auto pb-4">
-                        <div style={{ minWidth: `${Math.max(800, indicators.length * 40)}px`, height: '350px' }}>
-                            <Bar
-                                data={barData}
-                                options={{
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                        legend: { position: 'top', labels: { usePointStyle: true, padding: 20, font: { size: 11 } } },
-                                    },
-                                    scales: {
-                                        y: { beginAtZero: true, max: 110, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
-                                        x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 } },
-                                    },
-                                    animation: {
-                                        duration: 2000,
-                                        easing: 'easeOutQuart'
-                                    }
-                                }}
-                            />
+                {/* NEW: Monitoring Keaktifan Unit (Only for pimpinan) */}
+                {unitActivity && (
+                        <div className="lg:col-span-3 lg:grid lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-1">
+                                <UnitActivityMonitor activities={unitActivity} />
+                            </div>
+                            <div className="lg:col-span-2">
+                                <div className="stat-card bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-full overflow-hidden">
+                                     <h3 className="text-sm font-bold text-gray-800 mb-5 flex items-center gap-2">
+                                        <span className="w-1.5 h-5 bg-pens-500 rounded-full" />
+                                        Analisis Sebaran Realisasi IKU Per Indikator ({currentYear})
+                                    </h3>
+                                    <div className="h-[300px]">
+                                        <Bar
+                                            data={barData}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: { legend: { display: false } },
+                                                scales: {
+                                                    y: { beginAtZero: true, max: 110, grid: { color: 'rgba(0,0,0,0.04)' } },
+                                                    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 } },
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    )}
+
+                    {/* IF NO unitActivity (usually for Unit Kerja view) */}
+                    {!unitActivity && (
+                         <div className="lg:col-span-2">
+                            <div className="stat-card bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-full">
+                                <h3 className="text-sm font-bold text-gray-800 mb-5 flex items-center gap-2">
+                                    <span className="w-1.5 h-5 bg-pens-500 rounded-full" />
+                                    Visualisasi Perbandingan Target vs Capaian IKU Unit Kerja Anda ({currentYear})
+                                </h3>
+                                <div className="h-[280px]">
+                                    <Bar
+                                        data={barData}
+                                        options={{
+                                            responsive: true,
+                                            maintainAspectRatio: false,
+                                            plugins: { legend: { display: false } },
+                                            scales: {
+                                                y: { beginAtZero: true, max: 110, grid: { color: 'rgba(0,0,0,0.04)' } },
+                                                x: { grid: { display: false } },
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                         </div>
+                    )}
 
                 {/* ── KPI Cards Grid ── */}
                 <div className="mb-5 flex flex-col sm:flex-row sm:items-end justify-between border-b pb-4">

@@ -25,12 +25,20 @@ class DashboardService
         $chartData = $this->processChartData($indicators, $achievements, $user, $isWadirOrDirektur);
         $yearlyTrends = $this->calculateYearlyTrends($indicators, $user, $isWadirOrDirektur, $currentYear);
 
+        // Tahun yang benar-benar ada datanya (untuk panduan filter tahun)
+        $availableYears = IndicatorAchievement::selectRaw('DISTINCT year')
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->toArray();
+
         return [
-            'currentYear' => $currentYear,
-            'indicators' => $chartData['processedIndicators'],
-            'overallAvg' => $chartData['overallAvg'],
-            'stats' => $chartData['stats'],
-            'yearlyTrends' => $yearlyTrends
+            'currentYear'    => (int)$currentYear,
+            'indicators'     => $chartData['processedIndicators'],
+            'overallAvg'     => $chartData['overallAvg'],
+            'stats'          => $chartData['stats'],
+            'yearlyTrends'   => $yearlyTrends,
+            'unitActivity'   => $isWadirOrDirektur ? $this->calculateUnitActivity($currentYear) : null,
+            'availableYears' => $availableYears,
         ];
     }
 
@@ -119,6 +127,10 @@ class DashboardService
                 'id' => $ind->id,
                 'code' => $ind->code,
                 'desc' => $ind->description,
+                'data_type' => $ind->data_type,
+                'formula' => $ind->formula,
+                'numerator_label' => $ind->numerator_label,
+                'denominator_label' => $ind->denominator_label,
                 'target' => $target,
                 'value' => round($computedValue, 2),
                 'unit' => $picLabels,
@@ -200,5 +212,33 @@ class DashboardService
             'data' => $trendData,
             'targets' => array_fill(0, count($pastYears), 100)
         ];
+    }
+
+    /**
+     * Calculate which units have submitted data for the given year.
+     */
+    private function calculateUnitActivity($year): array
+    {
+        $allUnits = \App\Models\Unit::orderBy('name')->get();
+        $achievements = IndicatorAchievement::where('year', $year)->get();
+        
+        $activity = [];
+        foreach ($allUnits as $unit) {
+            // Cek apakah ada personil unit ini yang sudah mengisi capaian
+            $hasSubmitted = $achievements->contains(function ($a) use ($unit) {
+                return $a->user && $a->user->unit_id === $unit->id;
+            });
+
+            $activity[] = [
+                'id' => $unit->id,
+                'name' => $unit->name,
+                'status' => $hasSubmitted ? 'Sudah Isi' : 'Belum Isi',
+                'count' => $achievements->filter(function ($a) use ($unit) {
+                    return $a->user && $a->user->unit_id === $unit->id;
+                })->count()
+            ];
+        }
+
+        return $activity;
     }
 }
