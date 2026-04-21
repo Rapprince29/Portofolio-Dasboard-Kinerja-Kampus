@@ -14,7 +14,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (env('VERCEL') == '1') {
+            config(['view.compiled' => '/tmp/storage/framework/views']);
+        }
     }
 
     /**
