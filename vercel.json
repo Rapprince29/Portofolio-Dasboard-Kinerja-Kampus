@@ -12,20 +12,12 @@
             "dest": "/public/build/$1"
         },
         {
-            "src": "/assets/(.*)",
-            "dest": "/public/assets/$1"
+            "src": "/(css|js|images|fonts)/(.*)",
+            "dest": "/public/$1/$2"
         },
         {
             "src": "/favicon.ico",
             "dest": "/public/favicon.ico"
-        },
-        {
-            "src": "/robots.txt",
-            "dest": "/public/robots.txt"
-        },
-        {
-            "src": "/(css|js|images|fonts)/(.*)",
-            "dest": "/public/$1/$2"
         },
         {
             "src": "/(.*)",
@@ -33,11 +25,9 @@
         }
     ],
     "env": {
-        "APP_NAME": "Dashboard Kinerja PENS",
         "APP_KEY": "base64:niS4pIbo49pFHmZnlLf4nz6hN/vuOaN/fKfrLmVIZao=",
         "VERCEL": "1",
         "APP_ENV": "production",
-        "APP_DEBUG": "true",
-        "VIEW_COMPILED_PATH": "/tmp/storage/framework/views"
+        "APP_DEBUG": "true"
     }
 }
