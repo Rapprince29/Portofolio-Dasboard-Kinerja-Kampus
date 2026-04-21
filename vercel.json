@@ -37,7 +37,7 @@
         "CACHE_STORE": "array",
         "DB_CONNECTION": "sqlite",
         "DB_DATABASE": "/tmp/database.sqlite",
-        "VIEW_COMPILED_PATH": "/tmp/views",
+        "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
         "VITE_MANIFEST_PATH": "/var/task/public/build/manifest.json",
         "VERCEL": "1"
     }
