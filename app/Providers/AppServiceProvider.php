@@ -22,6 +22,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Vercel Fix: Redirect storage ke /tmp
+        if (env('VERCEL') == '1') {
+            $this->app->useStoragePath('/tmp/storage');
+        }
+
         Vite::prefetch(concurrency: 3);
 
         Gate::define('is-superadmin', function (User $user) {
