@@ -4,6 +4,11 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
+/*
+|--------------------------------------------------------------------------
+| Create The Application
+|--------------------------------------------------------------------------
+*/
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -23,18 +28,12 @@ $app = Application::configure(basePath: dirname(__DIR__))
 
 /*
 |--------------------------------------------------------------------------
-| VERCEL OVERRIDE (Sync Path)
+| VERCEL OVERRIDE
 |--------------------------------------------------------------------------
 */
 if (isset($_SERVER['VERCEL']) || env('VERCEL')) {
-    // Sinkronkan dengan api/index.php
+    // Gunakan method langsung dari $app, jangan pakai helper config()
     $app->useStoragePath('/tmp/storage');
-    
-    config([
-        'view.compiled' => '/tmp/storage/framework/views',
-        'cache.stores.file.path' => '/tmp/storage/framework/cache/data',
-        'session.files' => '/tmp/storage/framework/sessions',
-    ]);
 }
 
 return $app;
