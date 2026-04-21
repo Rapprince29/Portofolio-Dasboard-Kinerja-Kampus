@@ -1,64 +1,69 @@
 <?php
 
-// ==================================================
-// VERCEL - Setup SEBELUM Laravel boot
-// Path Vercel: /var/task/user/ (bukan /var/task/)
-// ==================================================
+/**
+ * Vercel PHP Entry Point untuk Laravel 12
+ *
+ * Strategi: set semua environment variable dan buat folder /tmp
+ * SEBELUM Composer autoloader dan Laravel diload.
+ */
 
-// Buat semua folder writable di /tmp
-$tmpDirs = [
-    '/tmp/storage',
-    '/tmp/storage/app',
+// ─── 1. Buat semua folder writable di /tmp ───────────────────────────────────
+$dirs = [
     '/tmp/storage/app/public',
-    '/tmp/storage/framework',
-    '/tmp/storage/framework/cache',
     '/tmp/storage/framework/cache/data',
     '/tmp/storage/framework/sessions',
     '/tmp/storage/framework/views',
     '/tmp/storage/logs',
 ];
-
-foreach ($tmpDirs as $dir) {
+foreach ($dirs as $dir) {
     if (!is_dir($dir)) {
-        @mkdir($dir, 0755, true);
+        mkdir($dir, 0755, true);
     }
 }
 
-// Override env variables yang dibutuhkan Laravel
-// sebelum framework di-load
-$_ENV['VERCEL']              = '1';
-$_SERVER['VERCEL']           = '1';
-$_ENV['VIEW_COMPILED_PATH']  = '/tmp/storage/framework/views';
-$_SERVER['VIEW_COMPILED_PATH'] = '/tmp/storage/framework/views';
+// ─── 2. Set environment variables lewat putenv() ─────────────────────────────
+// Ini memastikan getenv() dan $_ENV sama-sama mengambil nilai yang benar
+// bahkan sebelum Laravel membaca .env
+$envVars = [
+    'VERCEL'               => '1',
+    'APP_ENV'              => 'production',
+    'APP_DEBUG'            => 'true',
+    'LOG_CHANNEL'          => 'errorlog',
+    'SESSION_DRIVER'       => 'cookie',
+    'CACHE_STORE'          => 'array',
+    'VIEW_COMPILED_PATH'   => '/tmp/storage/framework/views',
+    'CACHE_DRIVER'         => 'array',
+];
 
-// Tentukan root project
-// Di Vercel, file ini ada di /var/task/user/api/index.php
-$projectRoot = dirname(__DIR__);
-
-// Validasi: pastikan autoloader tersedia
-$autoloaderPath = $projectRoot . '/vendor/autoload.php';
-if (!file_exists($autoloaderPath)) {
-    http_response_code(500);
-    header('Content-Type: text/plain');
-    echo "ERROR: vendor/autoload.php not found at: {$autoloaderPath}\n";
-    echo "Project root: {$projectRoot}\n";
-    echo "Files at root:\n";
-    if (is_dir($projectRoot)) {
-        foreach (array_slice(scandir($projectRoot), 0, 20) as $f) {
-            echo "  $f\n";
-        }
+foreach ($envVars as $key => $value) {
+    if (getenv($key) === false) {
+        putenv("$key=$value");
+        $_ENV[$key]    = $value;
+        $_SERVER[$key] = $value;
     }
-    exit(1);
 }
 
-// Validasi: pastikan public/index.php tersedia
-$laravelEntry = $projectRoot . '/public/index.php';
-if (!file_exists($laravelEntry)) {
+// ─── 3. Tentukan path root project ───────────────────────────────────────────
+$root = dirname(__DIR__); // satu level di atas /api/
+
+// ─── 4. Validasi file kritis ─────────────────────────────────────────────────
+$autoloader  = $root . '/vendor/autoload.php';
+$entryPoint  = $root . '/public/index.php';
+
+if (!file_exists($autoloader)) {
     http_response_code(500);
-    header('Content-Type: text/plain');
-    echo "ERROR: public/index.php not found at: {$laravelEntry}\n";
+    echo "<pre>ERROR: vendor/autoload.php tidak ditemukan.\nRoot: $root\n";
+    echo "Isi direktori root:\n";
+    foreach (scandir($root) as $f) echo "  $f\n";
+    echo '</pre>';
     exit(1);
 }
 
-// Bootstrap Laravel
-require $laravelEntry;
+if (!file_exists($entryPoint)) {
+    http_response_code(500);
+    echo "<pre>ERROR: public/index.php tidak ditemukan.\nRoot: $root</pre>";
+    exit(1);
+}
+
+// ─── 5. Bootstrap Laravel ────────────────────────────────────────────────────
+require $entryPoint;

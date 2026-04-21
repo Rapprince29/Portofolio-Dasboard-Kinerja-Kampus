@@ -22,39 +22,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 🚀 Vercel Fix: Redirect storage ke /tmp (filesystem read-only)
-        if (env('VERCEL') || isset($_SERVER['VERCEL']) || isset($_SERVER['VERCEL_URL'])) {
-
-            // Buat semua folder yang dibutuhkan Laravel di /tmp
-            $dirs = [
-                '/tmp/storage',
-                '/tmp/storage/app',
-                '/tmp/storage/app/public',
-                '/tmp/storage/framework',
-                '/tmp/storage/framework/cache',
-                '/tmp/storage/framework/cache/data',
-                '/tmp/storage/framework/sessions',
-                '/tmp/storage/framework/views',
-                '/tmp/storage/logs',
-                '/tmp/views',
-            ];
-            foreach ($dirs as $dir) {
-                if (!is_dir($dir)) {
-                    @mkdir($dir, 0755, true);
-                }
-            }
-
-            // Arahkan Laravel ke /tmp sebagai storage
+        // 🚀 Vercel Fix: Arahkan storage ke /tmp
+        // Folder sudah dibuat di api/index.php sebelum Laravel boot
+        if (env('VERCEL') === '1') {
             $this->app->useStoragePath('/tmp/storage');
-
-            // Override config untuk path yang perlu writable
             config([
-                'view.compiled'    => '/tmp/storage/framework/views',
-                'cache.stores.file.path' => '/tmp/storage/framework/cache/data',
-                'session.files'    => '/tmp/storage/framework/sessions',
+                'view.compiled'              => '/tmp/storage/framework/views',
+                'cache.stores.file.path'     => '/tmp/storage/framework/cache/data',
+                'session.files'              => '/tmp/storage/framework/sessions',
+                'logging.channels.single.path' => '/tmp/storage/logs/laravel.log',
             ]);
         }
-
 
         Vite::prefetch(concurrency: 3);
 
