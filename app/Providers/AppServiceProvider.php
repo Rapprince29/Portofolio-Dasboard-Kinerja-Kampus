@@ -22,18 +22,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 🚀 Vercel Fix: Arahkan storage ke /tmp
-        // Folder sudah dibuat di api/index.php sebelum Laravel boot
-        if (env('VERCEL') === '1') {
-            $this->app->useStoragePath('/tmp/storage');
-            config([
-                'view.compiled'              => '/tmp/storage/framework/views',
-                'cache.stores.file.path'     => '/tmp/storage/framework/cache/data',
-                'session.files'              => '/tmp/storage/framework/sessions',
-                'logging.channels.single.path' => '/tmp/storage/logs/laravel.log',
-            ]);
-        }
-
         Vite::prefetch(concurrency: 3);
 
         Gate::define('is-superadmin', function (User $user) {
@@ -50,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
 
         /**
          * 🔒 Gate Akses Unit Kerja
-         * Menggunakan `strtolower` untuk mencegah error 403 jika penulisan 
+         * Menggunakan `strtolower` untuk mencegah error 403 jika penulisan
          * di database bermacam-macam (misalnya kapital 'Unit Kerja' vs 'unit_kerja').
          */
         Gate::define('is-unit-kerja', function (User $user) {
