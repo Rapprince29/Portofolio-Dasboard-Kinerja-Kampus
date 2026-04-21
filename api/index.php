@@ -1,23 +1,21 @@
 <?php
 
 // ==================================================
-// VERCEL BOOTSTRAP
-// Buat semua folder /tmp yang dibutuhkan Laravel
-// SEBELUM framework di-load
+// VERCEL - Setup SEBELUM Laravel boot
+// Path Vercel: /var/task/user/ (bukan /var/task/)
 // ==================================================
 
+// Buat semua folder writable di /tmp
 $tmpDirs = [
-    '/tmp/views',
-    '/tmp/cache',
-    '/tmp/sessions',
-    '/tmp/logs',
-    '/tmp/framework',
-    '/tmp/framework/cache',
-    '/tmp/framework/cache/data',
-    '/tmp/framework/sessions',
-    '/tmp/framework/views',
-    '/tmp/app',
-    '/tmp/app/public',
+    '/tmp/storage',
+    '/tmp/storage/app',
+    '/tmp/storage/app/public',
+    '/tmp/storage/framework',
+    '/tmp/storage/framework/cache',
+    '/tmp/storage/framework/cache/data',
+    '/tmp/storage/framework/sessions',
+    '/tmp/storage/framework/views',
+    '/tmp/storage/logs',
 ];
 
 foreach ($tmpDirs as $dir) {
@@ -26,62 +24,41 @@ foreach ($tmpDirs as $dir) {
     }
 }
 
-// ==================================================
-// Deteksi path root project secara dinamis
-// (Vercel mungkin menaruh file di /var/task atau /var/task/user)
-// ==================================================
+// Override env variables yang dibutuhkan Laravel
+// sebelum framework di-load
+$_ENV['VERCEL']              = '1';
+$_SERVER['VERCEL']           = '1';
+$_ENV['VIEW_COMPILED_PATH']  = '/tmp/storage/framework/views';
+$_SERVER['VIEW_COMPILED_PATH'] = '/tmp/storage/framework/views';
 
-// Ambil direktori tempat file ini berada (/api/)
-$apiDir = __DIR__;
-// Root project adalah satu level di atas /api/
-$projectRoot = dirname($apiDir);
+// Tentukan root project
+// Di Vercel, file ini ada di /var/task/user/api/index.php
+$projectRoot = dirname(__DIR__);
 
-// Path menuju public/index.php
-$laravelEntry = $projectRoot . '/public/index.php';
-
-// Jika tidak ketemu, coba path alternatif Vercel
-if (!file_exists($laravelEntry)) {
-    $possibleRoots = [
-        '/var/task',
-        '/var/task/user',
-        '/var/task/src',
-    ];
-
-    foreach ($possibleRoots as $root) {
-        $candidate = $root . '/public/index.php';
-        if (file_exists($candidate)) {
-            $laravelEntry = $candidate;
-            $projectRoot   = $root;
-            break;
+// Validasi: pastikan autoloader tersedia
+$autoloaderPath = $projectRoot . '/vendor/autoload.php';
+if (!file_exists($autoloaderPath)) {
+    http_response_code(500);
+    header('Content-Type: text/plain');
+    echo "ERROR: vendor/autoload.php not found at: {$autoloaderPath}\n";
+    echo "Project root: {$projectRoot}\n";
+    echo "Files at root:\n";
+    if (is_dir($projectRoot)) {
+        foreach (array_slice(scandir($projectRoot), 0, 20) as $f) {
+            echo "  $f\n";
         }
     }
+    exit(1);
 }
 
-// Tampilkan error jika masih tidak ketemu
+// Validasi: pastikan public/index.php tersedia
+$laravelEntry = $projectRoot . '/public/index.php';
 if (!file_exists($laravelEntry)) {
     http_response_code(500);
-    echo '<pre>';
-    echo "Laravel entry point not found!\n";
-    echo "API dir    : {$apiDir}\n";
-    echo "Project root tested: {$projectRoot}\n";
-    echo "Looking for: {$laravelEntry}\n";
-    echo "\nFiles in /var/task:\n";
-    if (is_dir('/var/task')) {
-        foreach (scandir('/var/task') as $f) echo "  {$f}\n";
-    }
-    echo '</pre>';
+    header('Content-Type: text/plain');
+    echo "ERROR: public/index.php not found at: {$laravelEntry}\n";
     exit(1);
 }
 
-// Validasi vendor
-if (!file_exists($projectRoot . '/vendor/autoload.php')) {
-    http_response_code(500);
-    echo '<pre>';
-    echo "vendor/autoload.php not found!\n";
-    echo "Project root: {$projectRoot}\n";
-    echo '</pre>';
-    exit(1);
-}
-
-// Forward semua request ke Laravel
+// Bootstrap Laravel
 require $laravelEntry;
