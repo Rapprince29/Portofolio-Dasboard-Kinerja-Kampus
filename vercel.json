@@ -20,6 +20,10 @@
             "dest": "/public/favicon.ico"
         },
         {
+            "src": "/debug",
+            "dest": "/api/debug.php"
+        },
+        {
             "src": "/(.*)",
             "dest": "/api/index.php"
         }
