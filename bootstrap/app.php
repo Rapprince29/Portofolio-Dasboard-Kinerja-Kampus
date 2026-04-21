@@ -4,7 +4,12 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
-return Application::configure(basePath: dirname(__DIR__))
+/*
+|--------------------------------------------------------------------------
+| Create The Application
+|--------------------------------------------------------------------------
+*/
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
@@ -23,10 +28,17 @@ return Application::configure(basePath: dirname(__DIR__))
 
 /*
 |--------------------------------------------------------------------------
-| VERCEL OVERRIDE
+| VERCEL OVERRIDE (Akar Masalah Path)
 |--------------------------------------------------------------------------
-| Kita memaksa Laravel untuk mengenali folder /tmp sebagai storage.
 */
 if (isset($_SERVER['VERCEL']) || env('VERCEL')) {
-    app()->useStoragePath('/tmp/storage');
+    // Paksa storage path ke /tmp
+    $app->useStoragePath('/tmp');
+    
+    // Paksa compiled view path ke /tmp/views yang sudah kita buat di api/index.php
+    config(['view.compiled' => '/tmp/views']);
+    config(['cache.stores.file.path' => '/tmp/cache']);
+    config(['session.files' => '/tmp/sessions']);
 }
+
+return $app;
