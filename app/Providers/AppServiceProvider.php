@@ -22,14 +22,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 🚀 Vercel Fix: Redirect storage to /tmp
-        if (isset($_SERVER['VERCEL_URL'])) {
+        // 🚀 Vercel Fix: Redirect storage to /tmp (read-only filesystem)
+        if (env('VERCEL') || isset($_SERVER['VERCEL']) || isset($_SERVER['VERCEL_URL'])) {
             $this->app->useStoragePath('/tmp');
             config(['view.compiled' => '/tmp/views']);
-            
-            // Buat folder view jika belum ada
-            if (!is_dir('/tmp/views')) {
-                mkdir('/tmp/views', 0755, true);
+
+            // Buat semua folder yang dibutuhkan oleh Laravel di /tmp
+            $dirs = [
+                '/tmp/views',
+                '/tmp/cache',
+                '/tmp/sessions',
+                '/tmp/framework',
+                '/tmp/framework/cache',
+                '/tmp/framework/sessions',
+                '/tmp/framework/views',
+                '/tmp/logs',
+            ];
+            foreach ($dirs as $dir) {
+                if (!is_dir($dir)) {
+                    @mkdir($dir, 0755, true);
+                }
             }
         }
 

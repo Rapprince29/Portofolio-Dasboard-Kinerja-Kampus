@@ -1,12 +1,18 @@
 {
     "version": 2,
     "framework": null,
+    "installCommand": "composer install --no-dev --optimize-autoloader && npm ci",
+    "buildCommand": "npm run build",
     "functions": {
         "api/*.php": {
             "runtime": "vercel-php@0.8.0"
         }
     },
     "routes": [
+        {
+            "src": "/build/(.*)",
+            "dest": "/public/build/$1"
+        },
         {
             "src": "/(css|js|images|fonts)/(.*)",
             "dest": "/public/$1/$2"
@@ -24,15 +30,17 @@
             "dest": "/api/index.php"
         }
     ],
-    "outputDirectory": "public",
     "env": {
         "APP_ENV": "production",
-        "APP_DEBUG": "true",
+        "APP_DEBUG": "false",
+        "APP_KEY": "base64:niS4pIbo49pFHmZnlLf4nz6hN/vuOaN/fKfrLmVIZao=",
         "LOG_CHANNEL": "errorlog",
         "SESSION_DRIVER": "cookie",
         "CACHE_STORE": "array",
-        "DB_CONNECTION": "mysql",
+        "DB_CONNECTION": "sqlite",
+        "DB_DATABASE": "/tmp/database.sqlite",
         "VIEW_COMPILED_PATH": "/tmp",
-        "VITE_MANIFEST_PATH": "/tmp/manifest.json"
+        "VITE_MANIFEST_PATH": "/var/task/public/build/manifest.json",
+        "VERCEL": "1"
     }
 }
