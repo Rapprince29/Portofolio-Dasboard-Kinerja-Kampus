@@ -15,9 +15,18 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
-
-        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->create();
+
+/*
+|--------------------------------------------------------------------------
+| VERCEL OVERRIDE
+|--------------------------------------------------------------------------
+| Kita memaksa Laravel untuk mengenali folder /tmp sebagai storage.
+*/
+if (isset($_SERVER['VERCEL']) || env('VERCEL')) {
+    app()->useStoragePath('/tmp/storage');
+}
