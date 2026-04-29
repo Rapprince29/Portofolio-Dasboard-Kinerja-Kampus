@@ -3,10 +3,14 @@
     "framework": null,
     "functions": {
         "api/*.php": {
-            "runtime": "vercel-php@0.8.0"
+            "runtime": "vercel-php@0.7.2"
         }
     },
     "routes": [
+        {
+            "src": "/build/(.*)",
+            "dest": "/public/build/$1"
+        },
         {
             "src": "/(css|js|images|fonts)/(.*)",
             "dest": "/public/$1/$2"
@@ -16,23 +20,16 @@
             "dest": "/public/favicon.ico"
         },
         {
-            "src": "/robots.txt",
-            "dest": "/public/robots.txt"
-        },
-        {
             "src": "/(.*)",
             "dest": "/api/index.php"
         }
     ],
-    "outputDirectory": "public",
     "env": {
+        "VERCEL": "1",
         "APP_ENV": "production",
-        "APP_DEBUG": "true",
+        "APP_DEBUG": "false",
         "LOG_CHANNEL": "errorlog",
         "SESSION_DRIVER": "cookie",
-        "CACHE_STORE": "array",
-        "DB_CONNECTION": "mysql",
-        "VIEW_COMPILED_PATH": "/tmp",
-        "VITE_MANIFEST_PATH": "/tmp/manifest.json"
+        "CACHE_STORE": "array"
     }
 }

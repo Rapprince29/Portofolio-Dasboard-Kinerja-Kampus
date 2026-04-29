@@ -14,7 +14,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (env('VERCEL') == '1') {
+            config(['view.compiled' => '/tmp/storage/framework/views']);
+        }
     }
 
     /**
@@ -22,15 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 🚀 Vercel Fix: Redirect storage to /tmp
-        if (isset($_SERVER['VERCEL_URL'])) {
-            $this->app->useStoragePath('/tmp');
-            config(['view.compiled' => '/tmp/views']);
-            
-            // Buat folder view jika belum ada
-            if (!is_dir('/tmp/views')) {
-                mkdir('/tmp/views', 0755, true);
-            }
+        // Vercel Fix: Redirect storage ke /tmp
+        if (env('VERCEL') == '1') {
+            $this->app->useStoragePath('/tmp/storage');
+            \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
         Vite::prefetch(concurrency: 3);
@@ -49,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
 
         /**
          * 🔒 Gate Akses Unit Kerja
-         * Menggunakan `strtolower` untuk mencegah error 403 jika penulisan 
+         * Menggunakan `strtolower` untuk mencegah error 403 jika penulisan
          * di database bermacam-macam (misalnya kapital 'Unit Kerja' vs 'unit_kerja').
          */
         Gate::define('is-unit-kerja', function (User $user) {
