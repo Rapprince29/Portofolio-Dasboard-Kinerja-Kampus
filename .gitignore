@@ -27,6 +27,7 @@ Thumbs.db
 .env*.local
 /bootstrap/cache/*.php
 !/bootstrap/cache/.gitignore
+!/bootstrap/cache/.gitkeep
 /storage/framework/cache/data/*
 /storage/framework/views/*.php
 /storage/framework/sessions/*

@@ -32,8 +32,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
 |--------------------------------------------------------------------------
 */
 if (isset($_SERVER['VERCEL']) || env('VERCEL')) {
-    // Gunakan method langsung dari $app, jangan pakai helper config()
     $app->useStoragePath('/tmp/storage');
+    // Tambahkan baris ini untuk memindahkan path cache ke /tmp
+    $app->bind('path.bootstrap.cache', fn() => '/tmp/storage/bootstrap/cache');
 }
 
 return $app;
