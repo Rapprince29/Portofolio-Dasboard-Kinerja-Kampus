@@ -27,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
         // Vercel Fix: Redirect storage ke /tmp
         if (env('VERCEL') == '1') {
             $this->app->useStoragePath('/tmp/storage');
+            \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
         Vite::prefetch(concurrency: 3);
