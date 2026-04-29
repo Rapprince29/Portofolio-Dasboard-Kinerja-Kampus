@@ -13,6 +13,7 @@ if (getenv('VERCEL') == '1') {
         $baseTmp . '/views',
         $baseTmp . '/cache/data',
         $baseTmp . '/sessions',
+        '/tmp/storage/bootstrap/cache',
         '/tmp/storage/logs',
     ];
     foreach ($dirs as $dir) {
