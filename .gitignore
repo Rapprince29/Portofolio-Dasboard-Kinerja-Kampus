@@ -31,3 +31,4 @@ Thumbs.db
 /storage/framework/cache/data/*
 /storage/framework/views/*.php
 /storage/framework/sessions/*
+/db.sql
