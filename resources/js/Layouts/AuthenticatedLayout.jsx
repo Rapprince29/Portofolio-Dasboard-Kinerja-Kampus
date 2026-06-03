@@ -116,7 +116,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
         const startPolling = () => {
             poll(); // langsung cek saat tab aktif kembali
-            interval = setInterval(poll, 5_000); // ⚡ Setiap 5 detik (Super Cepat!)
+            interval = setInterval(poll, 30_000); // ⚡ Setiap 30 detik (Lebih hemat server)
         };
 
         const stopPolling = () => {

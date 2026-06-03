@@ -24,7 +24,7 @@ Homestead.yaml
 Thumbs.db
 
 .vercel
-.env*.local
+.env*.local*
 # /bootstrap/cache/*.php
 !/bootstrap/cache/.gitignore
 !/bootstrap/cache/.gitkeep

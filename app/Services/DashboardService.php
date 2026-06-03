@@ -220,22 +220,24 @@ class DashboardService
     private function calculateUnitActivity($year): array
     {
         $allUnits = \App\Models\Unit::orderBy('name')->get();
-        $achievements = IndicatorAchievement::where('year', $year)->get();
+        // Eager load 'user' to prevent N+1 query problem
+        $achievements = IndicatorAchievement::where('year', $year)->with('user')->get();
         
+        // Group achievements by unit_id in memory for O(1) lookups
+        $achievementsByUnit = $achievements->groupBy(function ($a) {
+            return $a->user?->unit_id;
+        });
+
         $activity = [];
         foreach ($allUnits as $unit) {
-            // Cek apakah ada personil unit ini yang sudah mengisi capaian
-            $hasSubmitted = $achievements->contains(function ($a) use ($unit) {
-                return $a->user && $a->user->unit_id === $unit->id;
-            });
+            $unitAchievements = $achievementsByUnit->get($unit->id, collect());
+            $hasSubmitted = $unitAchievements->isNotEmpty();
 
             $activity[] = [
                 'id' => $unit->id,
                 'name' => $unit->name,
                 'status' => $hasSubmitted ? 'Sudah Isi' : 'Belum Isi',
-                'count' => $achievements->filter(function ($a) use ($unit) {
-                    return $a->user && $a->user->unit_id === $unit->id;
-                })->count()
+                'count' => $unitAchievements->count()
             ];
         }
 
