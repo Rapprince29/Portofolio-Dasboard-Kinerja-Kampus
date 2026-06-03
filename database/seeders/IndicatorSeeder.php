@@ -279,14 +279,29 @@ class IndicatorSeeder extends Seeder
     ]
 ];
 
-        // 1. Buat Akun Wadir dan Direktur (Fix Data)
+        // 1. Buat Akun Pimpinan (Direktur & 4 Wadir) dan Superadmin
         User::firstOrCreate(['email' => 'direktur@pens.ac.id'], [
-            'name' => 'Direktur PENS',
+            'name' => 'Dr.-Ing. Ir. Arif Irwansyah, S.T., M.Eng.',
             'password' => Hash::make('password'),
             'role' => 'direktur',
         ]);
-        User::firstOrCreate(['email' => 'wadir@pens.ac.id'], [
-            'name' => 'Wadir PENS',
+        User::firstOrCreate(['email' => 'wadir1@pens.ac.id'], [
+            'name' => 'Prof. Moch. Zen Samsono Hadi, ST., M.Sc., Ph.D. (Akademik)',
+            'password' => Hash::make('password'),
+            'role' => 'wadir',
+        ]);
+        User::firstOrCreate(['email' => 'wadir2@pens.ac.id'], [
+            'name' => 'Dr. Bima Sena Bayu Dewantara, S.ST., M.T. (Keuangan & Umum)',
+            'password' => Hash::make('password'),
+            'role' => 'wadir',
+        ]);
+        User::firstOrCreate(['email' => 'wadir3@pens.ac.id'], [
+            'name' => 'Kholid Fathoni, S.Kom., M.T. (Kemahasiswaan)',
+            'password' => Hash::make('password'),
+            'role' => 'wadir',
+        ]);
+        User::firstOrCreate(['email' => 'wadir4@pens.ac.id'], [
+            'name' => 'Dr. Ir. Firman Arifin, S.T., M.T. (Kerjasama & Humas)',
             'password' => Hash::make('password'),
             'role' => 'wadir',
         ]);
@@ -298,13 +313,23 @@ class IndicatorSeeder extends Seeder
 
         // Looping Data IKU
         foreach ($ripiData as $item) {
+            // Tentukan tipe data berdasarkan nomor kode IKU
+            $dataType = 'percent';
+            $codeNum = (int)str_replace('IKU-', '', $item['code']);
+            
+            if (in_array($codeNum, [11, 33, 34, 35, 36, 37, 38, 39, 42, 43])) {
+                $dataType = 'count';
+            } elseif ($codeNum === 12) {
+                $dataType = 'boolean'; // Showcase tipe status biner (Ada/Tidak)
+            }
+
             // 2. Insert Indicator
             $indicator = Indicator::updateOrCreate(
                 ['code' => $item['code']],
                 [
                     'description' => $item['description'],
-                    'formula' => $item['formula'],
-                    'data_type' => 'percent' // Default persentase
+                    'formula' => $item['formula'] ?? '',
+                    'data_type' => $dataType
                 ]
             );
 
@@ -318,11 +343,19 @@ class IndicatorSeeder extends Seeder
                     // Buat Email Dummy dari Nama Unit
                     $email = Str::slug($picName) . '@pens.ac.id';
 
+                    // Berikan nama riil jika unit adalah P3M atau PPMPP
+                    $realName = 'Unit ' . $picName;
+                    if ($picName === 'P3M') {
+                        $realName = 'Prof. Dr. Mike Yuliana, S.T, M.T. (P3M)';
+                    } elseif ($picName === 'PPMPP') {
+                        $realName = 'Dr. Ir. Hary Oktavianto, S.T., M.Eng. (PPMPP)';
+                    }
+
                     // Buat Akun User untuk Unit ini (sebagai Unit Kerja)
                     $user = User::firstOrCreate(
                         ['email' => $email],
                         [
-                            'name' => 'Unit ' . $picName,
+                            'name' => $realName,
                             'password' => Hash::make('password'),
                             'role' => 'unit_kerja',
                             'unit_id' => $unit->id

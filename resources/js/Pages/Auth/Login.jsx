@@ -29,9 +29,11 @@ export default function Login({ status }) {
                 {/* Logo & Header */}
                 <div className="text-center mb-8 animate-slide-up">
                     <div className="flex justify-center mb-4">
-                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-pens-600 to-pens-700 flex items-center justify-center shadow-lg shadow-pens-500/30">
-                            <span className="text-3xl font-extrabold text-gold-400">P</span>
-                        </div>
+                        <img 
+                            src="/images/pens-logo.png" 
+                            alt="Logo PENS" 
+                            className="w-20 h-20 object-contain drop-shadow-md animate-fade-in" 
+                        />
                     </div>
                     <h1 className="text-2xl font-bold text-gray-800">
                         Dashboard <span className="text-pens-500">KPI</span>

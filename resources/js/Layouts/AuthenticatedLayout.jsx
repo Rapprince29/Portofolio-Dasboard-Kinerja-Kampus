@@ -211,7 +211,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
             {/* Sidebar */}
             <aside className={`
-                fixed top-0 left-0 z-50 h-full w-64 bg-gradient-to-b from-pens-700 via-pens-600 to-pens-800
+                fixed top-0 left-0 z-50 h-full w-64 bg-[#0a1f42] border-r border-white/5
                 transform transition-transform duration-300 ease-in-out
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                 lg:translate-x-0
@@ -219,12 +219,14 @@ export default function AuthenticatedLayout({ header, children }) {
                 {/* Logo Area */}
                 <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
                     <Link href="/" className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center shadow-lg">
-                            <span className="text-pens-800 font-extrabold text-lg">P</span>
-                        </div>
+                        <img 
+                            src="/images/pens-logo.png" 
+                            alt="Logo PENS" 
+                            className="w-10 h-10 object-contain" 
+                        />
                         <div>
                             <h1 className="text-white font-bold text-sm leading-tight">Dashboard KPI</h1>
-                            <p className="text-pens-300 text-xs">PENS</p>
+                            <p className="text-sky-400 font-bold text-[10px] tracking-wider">PENS</p>
                         </div>
                     </Link>
                     <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/60 hover:text-white">
@@ -261,9 +263,11 @@ export default function AuthenticatedLayout({ header, children }) {
                 {/* User Card at Bottom */}
                 <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
                     <div className="flex items-center gap-3 px-2 mb-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-300 to-gold-500 flex items-center justify-center">
-                            <span className="text-pens-800 font-bold text-sm">{user.name.charAt(0)}</span>
-                        </div>
+                        <img 
+                            src="/images/default-avatar.png" 
+                            alt={user.name} 
+                            className="w-9 h-9 rounded-full object-cover border border-white/20 shadow-sm"
+                        />
                         <div className="flex-1 min-w-0">
                             <p className="text-white text-sm font-medium truncate">{user.name}</p>
                             <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${badge.color}`}>

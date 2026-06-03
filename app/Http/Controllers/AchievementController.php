@@ -15,7 +15,7 @@ class AchievementController extends Controller
         $year = $request->query('year', now()->year);
         $role = strtolower($user->role);
 
-        $query = IndicatorAchievement::with(['indicator', 'user'])
+        $query = IndicatorAchievement::with(['indicator', 'user', 'researchGroup'])
             ->where('year', $year)
             ->orderBy('created_at', 'desc');
 
@@ -38,11 +38,14 @@ class AchievementController extends Controller
             ->pluck('year')
             ->toArray();
 
+        $researchGroups = \App\Models\ResearchGroup::orderBy('name')->get();
+
         return \Inertia\Inertia::render('Achievements/Index', [
             'achievements'   => $achievements,
             'myIndicators'   => $myIndicators,
             'currentYear'    => (int)$year,
             'availableYears' => $availableYears,
+            'researchGroups' => $researchGroups,
         ]);
     }
 
@@ -56,6 +59,7 @@ class AchievementController extends Controller
             'denominator_value' => 'nullable|numeric',
             'description' => 'nullable|string',
             'proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'research_group_id' => 'nullable|exists:research_groups,id',
         ]);
 
         // Smart Logic: Hitung otomatis persentase jika ada numerator & denominator

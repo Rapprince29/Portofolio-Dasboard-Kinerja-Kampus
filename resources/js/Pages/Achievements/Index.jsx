@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import Modal from '@/Components/Modal';
 
-export default function Index({ auth, achievements, myIndicators, currentYear, availableYears }) {
+export default function Index({ auth, achievements, myIndicators, currentYear, availableYears, researchGroups }) {
     const { flash } = usePage().props;
     const [filterStatus, setFilterStatus] = useState('all');
     const [toast, setToast] = useState(null);
@@ -28,6 +28,7 @@ export default function Index({ auth, achievements, myIndicators, currentYear, a
         denominator_value: '',
         description: '',
         proof: null,
+        research_group_id: '',
     });
 
     // Auto-calculate percentage when numerator or denominator changes
@@ -47,6 +48,9 @@ export default function Index({ auth, achievements, myIndicators, currentYear, a
         const id = e.target.value;
         setData('indicator_id', id);
         const found = myIndicators?.find(ind => String(ind.id) === String(id));
+        console.log("DEBUG - Found indicator:", found);
+        console.log("DEBUG - Code to lower:", found?.code?.toLowerCase());
+        console.log("DEBUG - Match result:", found?.code && ['iku-31', 'iku-32', 'iku-40', 'iku-41'].includes(found.code.toLowerCase()));
         setSelectedIndicator(found || null);
     };
 
@@ -277,6 +281,11 @@ export default function Index({ auth, achievements, myIndicators, currentYear, a
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-pens-700">{item.indicator?.code}</div>
                                             <div className="text-xs text-gray-500 truncate max-w-[200px]">{item.indicator?.description}</div>
+                                            {item.research_group && (
+                                                <span className="inline-block mt-1.5 px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-150 rounded-md text-[10px] font-bold">
+                                                    RG: {item.research_group.name}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-center font-semibold">{item.year}</td>
                                         <td className="px-6 py-4 text-center font-bold">{item.value}</td>
@@ -419,131 +428,163 @@ export default function Index({ auth, achievements, myIndicators, currentYear, a
             </div>
 
             <Modal show={isModalOpen} onClose={closeModal} maxWidth="lg">
-                <div className="p-6">
-                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                <div className="p-6 max-h-[90vh] flex flex-col">
+                    {/* Header: Tetap di atas */}
+                    <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100 flex-shrink-0">
                         <div>
                             <h2 className="text-xl font-bold text-gray-800">Ajukan Capaian IKU</h2>
                             <p className="text-sm text-gray-500 mt-0.5">Isi data capaian sesuai target IKU yang ditugaskan</p>
                         </div>
                         <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                     </div>
-                    <form onSubmit={submitAchievement} className="space-y-4">
-                        {/* Pilih Indikator */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Indikator IKU <span className="text-red-500">*</span></label>
-                            <select value={data.indicator_id} onChange={handleIndicatorChange}
-                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-pens-500 focus:border-pens-500" required>
-                                <option value="">— Pilih Indikator IKU —</option>
-                                {myIndicators?.map(ind => (
-                                    <option key={ind.id} value={ind.id}>
-                                        {ind.code} — {ind.description?.substring(0, 60)}{ind.description?.length > 60 ? '...' : ''}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.indicator_id && <p className="text-red-500 text-xs mt-1">{errors.indicator_id}</p>}
-                        </div>
-
-                        {/* Info Card IKU */}
-                        {selectedIndicator && (
-                            <div className="bg-pens-50 border border-pens-200 rounded-xl p-4 space-y-2.5">
-                                <div className="flex items-center gap-2">
-                                    <span className="px-2.5 py-0.5 bg-pens-600 text-white text-xs font-bold rounded-lg">{selectedIndicator.code}</span>
-                                    <span className="text-xs text-pens-700 font-semibold uppercase tracking-wide">
-                                        {selectedIndicator.data_type === 'percent' ? 'Persentase (%)' : selectedIndicator.data_type}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">📋 Deskripsi Indikator</p>
-                                    <p className="text-sm text-gray-700 leading-relaxed">{selectedIndicator.description}</p>
-                                </div>
-                                {selectedIndicator.formula && (
-                                    <div>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">🔢 Formula</p>
-                                        <p className="text-sm text-pens-800 bg-white border border-pens-100 rounded-lg px-3 py-2 font-mono">{selectedIndicator.formula}</p>
-                                    </div>
-                                )}
-                                {selectedIndicator.targets?.length > 0 && (
-                                    <div className="flex items-center gap-2 flex-wrap pt-1">
-                                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">🎯 Target:</span>
-                                        {selectedIndicator.targets.slice(0, 3).map(t => (
-                                            <span key={t.id} className="px-2.5 py-0.5 bg-white border border-pens-200 rounded-full text-xs font-bold text-pens-700">
-                                                {t.year}: {t.target_value}{selectedIndicator.data_type === 'percent' ? '%' : ''}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Tahun & Nilai (SMART FORM LOGIC) */}
-                        <div className="space-y-4">
+                    <form onSubmit={submitAchievement} className="flex flex-col flex-1 min-h-0">
+                        {/* Body Scrollable: Tempat input-input */}
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[55vh]">
+                            {/* Pilih Indikator */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tahun <span className="text-red-500">*</span></label>
-                                <input type="number" value={data.year} onChange={e => setData('year', e.target.value)}
-                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pens-500"
-                                    placeholder="2026" required />
-                                {errors.year && <p className="text-red-500 text-xs mt-1">{errors.year}</p>}
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Indikator IKU <span className="text-red-500">*</span></label>
+                                <select value={data.indicator_id} onChange={handleIndicatorChange}
+                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-pens-500 focus:border-pens-500" required>
+                                    <option value="">— Pilih Indikator IKU —</option>
+                                    {myIndicators?.map(ind => (
+                                        <option key={ind.id} value={ind.id}>
+                                            {ind.code} — {ind.description?.substring(0, 60)}{ind.description?.length > 60 ? '...' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.indicator_id && <p className="text-red-500 text-xs mt-1">{errors.indicator_id}</p>}
                             </div>
 
-                            {(selectedIndicator?.data_type === 'percent' || (selectedIndicator?.code && selectedIndicator.code.toLowerCase().includes('rasio'))) ? (
-                                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                    <div className="col-span-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span> Mode Kalkulasi Otomatis
+                            {/* Info Card IKU */}
+                            {selectedIndicator && (
+                                <div className="bg-pens-50 border border-pens-200 rounded-xl p-4 space-y-2.5">
+                                    <div className="flex items-center gap-2">
+                                        <span className="px-2.5 py-0.5 bg-pens-600 text-white text-xs font-bold rounded-lg">{selectedIndicator.code}</span>
+                                        <span className="text-xs text-pens-700 font-semibold uppercase tracking-wide">
+                                            {selectedIndicator.data_type === 'percent' ? 'Persentase (%)' : selectedIndicator.data_type}
+                                        </span>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">
-                                            {selectedIndicator.numerator_label || 'Pembilang (Capaian)'} <span className="text-red-500">*</span>
-                                        </label>
-                                        <input type="number" step="0.01" value={data.numerator_value} onChange={e => setData('numerator_value', e.target.value)}
-                                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                                            placeholder="0" required />
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">📋 Deskripsi Indikator</p>
+                                        <p className="text-sm text-gray-700 leading-relaxed">{selectedIndicator.description}</p>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">
-                                            {selectedIndicator.denominator_label || 'Penyebut (Total)'} <span className="text-red-500">*</span>
-                                        </label>
-                                        <input type="number" step="0.01" value={data.denominator_value} onChange={e => setData('denominator_value', e.target.value)}
-                                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                                            placeholder="0" required />
-                                    </div>
-                                    <div className="col-span-2 pt-2 border-t border-gray-100 mt-1">
-                                        <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
-                                            <span className="text-xs font-bold text-gray-500">HASIL PERSENTASE:</span>
-                                            <span className="text-lg font-black text-blue-600">{data.value || 0}%</span>
+                                    {selectedIndicator.formula && (
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">🔢 Formula</p>
+                                            <p className="text-sm text-pens-800 bg-white border border-pens-100 rounded-lg px-3 py-2 font-mono">{selectedIndicator.formula}</p>
                                         </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        Nilai Realisasi <span className="text-red-500">*</span>
-                                    </label>
-                                    <input type="number" step="0.01" value={data.value} onChange={e => setData('value', e.target.value)}
-                                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pens-500"
-                                        placeholder="Tulis angka hasil realisasi..." required />
-                                    {errors.value && <p className="text-red-500 text-xs mt-1">{errors.value}</p>}
+                                    )}
+                                    {selectedIndicator.targets?.length > 0 && (
+                                        <div className="flex items-center gap-2 flex-wrap pt-1">
+                                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">🎯 Target:</span>
+                                            {selectedIndicator.targets.slice(0, 3).map(t => (
+                                                <span key={t.id} className="px-2.5 py-0.5 bg-white border border-pens-200 rounded-full text-xs font-bold text-pens-700">
+                                                    {t.year}: {t.target_value}{selectedIndicator.data_type === 'percent' ? '%' : ''}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
+
+                            {/* Tahun & Nilai (SMART FORM LOGIC) */}
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tahun <span className="text-red-500">*</span></label>
+                                    <input type="number" value={data.year} onChange={e => setData('year', e.target.value)}
+                                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pens-500"
+                                        placeholder="2026" required />
+                                    {errors.year && <p className="text-red-500 text-xs mt-1">{errors.year}</p>}
+                                </div>
+
+                                {/* Pilihan Research Group jika IKU Riset (IKU-31, IKU-32, IKU-40, IKU-41) */}
+                                {selectedIndicator?.code && ['iku-31', 'iku-32', 'iku-40', 'iku-41'].includes(selectedIndicator.code.toLowerCase()) && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Research Group (RG) <span className="text-red-500">*</span></label>
+                                        <select value={data.research_group_id} onChange={e => setData('research_group_id', e.target.value)}
+                                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-pens-500" required>
+                                            <option value="">— Pilih Research Group —</option>
+                                            {researchGroups?.map(rg => (
+                                                <option key={rg.id} value={rg.id}>{rg.name}</option>
+                                            ))}
+                                        </select>
+                                        {errors.research_group_id && <p className="text-red-500 text-xs mt-1">{errors.research_group_id}</p>}
+                                    </div>
+                                )}
+
+                                {selectedIndicator?.data_type === 'boolean' ? (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                            Status Realisasi <span className="text-red-500">*</span>
+                                        </label>
+                                        <select value={data.value} onChange={e => setData('value', e.target.value)}
+                                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-pens-500" required>
+                                            <option value="">— Pilih Status Realisasi —</option>
+                                            <option value="100">Ada / Ya</option>
+                                            <option value="0">Tidak Ada / Tidak</option>
+                                        </select>
+                                        {errors.value && <p className="text-red-500 text-xs mt-1">{errors.value}</p>}
+                                    </div>
+                                ) : (selectedIndicator?.data_type === 'percent' || (selectedIndicator?.code && selectedIndicator.code.toLowerCase().includes('rasio'))) ? (
+                                    <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                        <div className="col-span-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span> Mode Kalkulasi Otomatis
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">
+                                                {selectedIndicator.numerator_label || 'Pembilang (Capaian)'} <span className="text-red-500">*</span>
+                                            </label>
+                                            <input type="number" step="0.01" value={data.numerator_value} onChange={e => setData('numerator_value', e.target.value)}
+                                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                                placeholder="0" required />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">
+                                                {selectedIndicator.denominator_label || 'Penyebut (Total)'} <span className="text-red-500">*</span>
+                                            </label>
+                                            <input type="number" step="0.01" value={data.denominator_value} onChange={e => setData('denominator_value', e.target.value)}
+                                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                                placeholder="0" required />
+                                        </div>
+                                        <div className="col-span-2 pt-2 border-t border-gray-100 mt-1">
+                                            <div className="flex justify-between items-center bg-white px-3 py-2 rounded-lg border border-gray-100 shadow-sm">
+                                                <span className="text-xs font-bold text-gray-500">HASIL PERSENTASE:</span>
+                                                <span className="text-lg font-black text-blue-600">{data.value || 0}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                            Nilai Realisasi <span className="text-red-500">*</span>
+                                        </label>
+                                        <input type="number" step="0.01" value={data.value} onChange={e => setData('value', e.target.value)}
+                                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pens-500"
+                                            placeholder="Tulis angka hasil realisasi..." required />
+                                        {errors.value && <p className="text-red-500 text-xs mt-1">{errors.value}</p>}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Catatan */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Catatan <span className="text-gray-400 font-normal">(opsional)</span></label>
+                                <textarea value={data.description} onChange={e => setData('description', e.target.value)}
+                                    placeholder="Penjelasan singkat mengenai nilai realisasi ini..." rows={2}
+                                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pens-500" />
+                            </div>
+
+                            {/* Upload Bukti */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Bukti Pendukung <span className="text-gray-400 font-normal">(PDF/Gambar)</span></label>
+                                <input type="file" accept="application/pdf,image/*" onChange={e => setData('proof', e.target.files[0])}
+                                    className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pens-50 file:text-pens-700 hover:file:bg-pens-100 border border-gray-200 rounded-xl p-2 cursor-pointer" />
+                                {errors.proof && <p className="text-red-500 text-xs mt-1">{errors.proof}</p>}
+                            </div>
                         </div>
 
-                        {/* Catatan */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Catatan <span className="text-gray-400 font-normal">(opsional)</span></label>
-                            <textarea value={data.description} onChange={e => setData('description', e.target.value)}
-                                placeholder="Penjelasan singkat mengenai nilai realisasi ini..." rows={2}
-                                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pens-500" />
-                        </div>
-
-                        {/* Upload Bukti */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Bukti Pendukung <span className="text-gray-400 font-normal">(PDF/Gambar)</span></label>
-                            <input type="file" accept="application/pdf,image/*" onChange={e => setData('proof', e.target.files[0])}
-                                className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pens-50 file:text-pens-700 hover:file:bg-pens-100 border border-gray-200 rounded-xl p-2 cursor-pointer" />
-                            {errors.proof && <p className="text-red-500 text-xs mt-1">{errors.proof}</p>}
-                        </div>
-
-                        {/* Tombol */}
-                        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                        {/* Footer: Tetap di bawah */}
+                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 flex-shrink-0 mt-4">
                             <button type="button" onClick={closeModal}
                                 className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition">Batal</button>
                             <button type="submit" disabled={processing}
