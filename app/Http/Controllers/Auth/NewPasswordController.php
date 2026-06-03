@@ -34,6 +34,9 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Tingkatkan batas waktu eksekusi untuk koneksi database remote (Supabase)
+        set_time_limit(120);
+
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
