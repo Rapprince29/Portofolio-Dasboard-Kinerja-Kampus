@@ -1,6 +1,6 @@
 import InputError from '@/Components/InputError';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function Login({ status }) {
@@ -119,7 +119,7 @@ export default function Login({ status }) {
                         <InputError message={errors.password} className="mt-1.5" />
                     </div>
 
-                    {/* Remember Me */}
+                    {/* Remember Me & Forgot Password */}
                     <div className="flex items-center justify-between animate-slide-up" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
                         <label className="flex items-center gap-2 cursor-pointer group">
                             <input
@@ -133,6 +133,12 @@ export default function Login({ status }) {
                                 Ingat saya
                             </span>
                         </label>
+                        <Link
+                            href={route('password.request')}
+                            className="text-sm text-pens-500 hover:text-pens-700 font-medium transition-colors hover:underline"
+                        >
+                            Lupa password?
+                        </Link>
                     </div>
 
                     {/* Submit Button */}
